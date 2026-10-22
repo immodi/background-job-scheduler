@@ -1,5 +1,7 @@
 # Background Job Scheduler
 
+[![CI](https://github.com/immodi/background-job-scheduler/actions/workflows/ci.yml/badge.svg)](https://github.com/immodi/background-job-scheduler/actions/workflows/ci.yml)
+
 A small REST service for scheduling and tracking background jobs, built with Spring Boot, Spring Data JPA, and an embedded SQLite database.
 
 Jobs are created with a future `scheduledAt` time and move through a simple lifecycle. Execution/worker logic is not implemented yet — this service currently owns the job model, the CRUD API, and the state transitions.
@@ -94,6 +96,13 @@ Errors are returned as RFC 9457 `ProblemDetail` responses:
 
 - JDK 17 or newer (only a JDK is needed; Maven is provided via the wrapper)
 
+### Clone
+
+```bash
+git clone git@github.com:immodi/background-job-scheduler.git
+cd background-job-scheduler
+```
+
 ### Run
 
 ```bash
@@ -114,7 +123,7 @@ The SQLite database is created on first start at `./jobs.db` (schema is managed 
 
 ```bash
 ./mvnw clean package
-java -jar target/BackgroundJobScheduler-0.0.1-SNAPSHOT.jar
+java -jar target/background-job-scheduler-0.0.1-SNAPSHOT.jar
 ```
 
 ## Project Structure
@@ -144,3 +153,7 @@ GitHub Actions runs `./mvnw -B verify` on every push and pull request to `main`/
 - Retries and failure backoff
 - Pagination and filtering by status
 - Authentication and multi-tenant support
+
+## License
+
+Released under the [MIT License](LICENSE).
