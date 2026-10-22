@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: BackgroundJobScheduler
+
+  datasource:
+    url: jdbc:sqlite:./jobs.db
+    driver-class-name: org.sqlite.JDBC
+
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
