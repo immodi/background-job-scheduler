@@ -151,6 +151,16 @@ class JobControllerTest {
     }
 
     @Test
+    void deleteJob_whenMissing_returnsNotFound() throws Exception {
+        doThrow(new JobNotFoundException(1L)).when(jobService).deleteJob(1L);
+
+        mockMvc.perform(delete("/jobs/1"))
+                .andExpect(status().isNotFound());
+
+        verify(jobService).deleteJob(1L);
+    }
+
+    @Test
     void cancelJob_returnsSuccessfulResponse() throws Exception {
         doNothing().when(jobService).cancelJob(1L);
 

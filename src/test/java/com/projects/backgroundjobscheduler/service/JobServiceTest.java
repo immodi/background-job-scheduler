@@ -5,6 +5,7 @@ import com.projects.backgroundjobscheduler.dto.UpdateJobRequest;
 import com.projects.backgroundjobscheduler.entity.Job;
 import com.projects.backgroundjobscheduler.enums.JobStatus;
 import com.projects.backgroundjobscheduler.exception.InvalidJobStateException;
+import com.projects.backgroundjobscheduler.exception.JobNotFoundException;
 import com.projects.backgroundjobscheduler.repository.JobRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -111,10 +113,22 @@ public class JobServiceTest {
     }
 
     @Test
-    void deleteJob_deletesJobById() {
+    void deleteJob_deletesExistingJob() {
+        when(jobRepository.findById(1L)).thenReturn(Optional.of(job));
+
         jobService.deleteJob(1L);
 
-        verify(jobRepository).deleteById(1L);
+        verify(jobRepository).delete(job);
+    }
+
+    @Test
+    void deleteJob_throwsWhenJobNotFound() {
+        when(jobRepository.findById(1L)).thenReturn(Optional.empty());
+
+        assertThrows(JobNotFoundException.class,
+                () -> jobService.deleteJob(1L));
+
+        verify(jobRepository, never()).delete(any(Job.class));
     }
 
     @Test

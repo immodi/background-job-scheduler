@@ -49,7 +49,7 @@ public class JobService {
 
     @Transactional
     public void deleteJob(Long id) {
-        jobRepository.deleteById(id);
+        jobRepository.delete(getJobOrThrow(id));
     }
 
     @Transactional(readOnly = true)
