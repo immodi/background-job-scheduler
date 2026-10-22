@@ -4,9 +4,11 @@ package com.projects.backgroundjobscheduler.controller;
 import com.projects.backgroundjobscheduler.dto.CreateJobRequest;
 import com.projects.backgroundjobscheduler.dto.UpdateJobRequest;
 import com.projects.backgroundjobscheduler.entity.Job;
+import com.projects.backgroundjobscheduler.enums.TaskType;
 import com.projects.backgroundjobscheduler.exception.GlobalExceptionHandler;
 import com.projects.backgroundjobscheduler.exception.InvalidJobStateException;
 import com.projects.backgroundjobscheduler.exception.JobNotFoundException;
+import com.projects.backgroundjobscheduler.service.JobOrchestrator;
 import com.projects.backgroundjobscheduler.service.JobService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,15 +41,20 @@ class JobControllerTest {
     @MockitoBean
     private JobService jobService;
 
+    @MockitoBean
+    private JobOrchestrator jobOrchestrator;
+
     @Test
     void createJob_returnsCreated() throws Exception {
         var request = new CreateJobRequest(
                 "Test job",
                 "Description",
-                LocalDateTime.now().plusHours(1)
+                LocalDateTime.now().plusHours(1),
+                TaskType.GENERATE_REPORT,
+                objectMapper.createObjectNode()
         );
 
-        when(jobService.createJob(any(CreateJobRequest.class)))
+        when(jobOrchestrator.createJob(any(CreateJobRequest.class)))
                 .thenAnswer(invocation -> new Job(
                         request.name(),
                         request.description(),
@@ -60,6 +67,9 @@ class JobControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Test job"))
                 .andExpect(jsonPath("$.status").value("PENDING"));
+
+        verify(jobOrchestrator).createJob(any(CreateJobRequest.class));
+        verifyNoInteractions(jobService);
     }
 
     @Test
@@ -67,7 +77,9 @@ class JobControllerTest {
         var request = new CreateJobRequest(
                 "",
                 "Description",
-                LocalDateTime.now().minusHours(1)
+                LocalDateTime.now().minusHours(1),
+                TaskType.GENERATE_REPORT,
+                objectMapper.createObjectNode()
         );
 
         mockMvc.perform(post("/jobs")
@@ -75,7 +87,7 @@ class JobControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verifyNoInteractions(jobService);
+        verifyNoInteractions(jobService, jobOrchestrator);
     }
 
     @Test

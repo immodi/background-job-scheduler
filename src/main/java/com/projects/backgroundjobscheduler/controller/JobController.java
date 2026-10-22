@@ -3,6 +3,7 @@ package com.projects.backgroundjobscheduler.controller;
 import com.projects.backgroundjobscheduler.dto.CreateJobRequest;
 import com.projects.backgroundjobscheduler.dto.UpdateJobRequest;
 import com.projects.backgroundjobscheduler.entity.Job;
+import com.projects.backgroundjobscheduler.service.JobOrchestrator;
 import com.projects.backgroundjobscheduler.service.JobService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -14,15 +15,17 @@ import java.util.List;
 @RequestMapping("/jobs")
 public class JobController {
     private final JobService jobService;
+    private final JobOrchestrator jobOrchestrator;
 
-    public JobController(JobService jobService) {
+    public JobController(JobService jobService, JobOrchestrator jobOrchestrator) {
         this.jobService = jobService;
+        this.jobOrchestrator = jobOrchestrator;
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Job createJob(@Valid @RequestBody CreateJobRequest request) {
-        return jobService.createJob(request);
+        return jobOrchestrator.createJob(request);
     }
 
     @GetMapping

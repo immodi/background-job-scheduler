@@ -4,6 +4,7 @@ import com.projects.backgroundjobscheduler.dto.CreateJobRequest;
 import com.projects.backgroundjobscheduler.dto.UpdateJobRequest;
 import com.projects.backgroundjobscheduler.entity.Job;
 import com.projects.backgroundjobscheduler.enums.JobStatus;
+import com.projects.backgroundjobscheduler.enums.TaskType;
 import com.projects.backgroundjobscheduler.exception.InvalidJobStateException;
 import com.projects.backgroundjobscheduler.exception.JobNotFoundException;
 import com.projects.backgroundjobscheduler.repository.JobRepository;
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,7 +46,7 @@ public class JobServiceTest {
     @Test
     void createJob_savesJobToRepository() {
         var scheduledAt = LocalDateTime.now().plusHours(1);
-        var request = new CreateJobRequest("Test job", "Description", scheduledAt);
+        var request = new CreateJobRequest("Test job", "Description", scheduledAt, TaskType.GENERATE_REPORT, new ObjectMapper().createObjectNode());
 
         when(jobRepository.save(any(Job.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -156,6 +159,7 @@ public class JobServiceTest {
         jobService.startJob(1L);
 
         assertEquals(JobStatus.RUNNING, job.getStatus());
+        assertNotNull(job.getStartedAt());
     }
 
     @Test
@@ -172,9 +176,12 @@ public class JobServiceTest {
         job.markAsRunning();
         when(jobRepository.findById(1L)).thenReturn(Optional.of(job));
 
-        jobService.completeJob(1L);
+        var output = new ObjectMapper().createObjectNode().put("body", "done");
+
+        jobService.completeJob(1L, output);
 
         assertEquals(JobStatus.COMPLETED, job.getStatus());
+        assertSame(output, job.getOutput());
         assertNotNull(job.getCompletedAt());
     }
 
@@ -183,7 +190,7 @@ public class JobServiceTest {
         when(jobRepository.findById(1L)).thenReturn(Optional.of(job));
 
         assertThrows(InvalidJobStateException.class,
-                () -> jobService.completeJob(1L));
+                () -> jobService.completeJob(1L, new ObjectMapper().createObjectNode()));
     }
 
     @Test

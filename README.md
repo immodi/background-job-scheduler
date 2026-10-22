@@ -4,7 +4,7 @@
 
 A small REST service for scheduling and tracking background jobs, built with Spring Boot, Spring Data JPA, and an embedded SQLite database.
 
-Jobs are created with a future `scheduledAt` time and move through a simple lifecycle. Execution/worker logic is not implemented yet — this service currently owns the job model, the CRUD API, and the state transitions.
+Jobs are created with a future `scheduledAt` time and move through a simple lifecycle. A scheduler submits due jobs to a worker that resolves and executes the configured task.
 
 ## Features
 
@@ -12,9 +12,11 @@ Jobs are created with a future `scheduledAt` time and move through a simple life
 - Validate input (`name` required, `scheduledAt` must be in the future)
 - Explicit job lifecycle with guarded state transitions
 - Cancel pending jobs
+- Scheduled execution through a thread-pool task scheduler
+- Pluggable task resolution (`TaskType` → `ITask`)
 - Persistent storage in a local SQLite file (`jobs.db`)
 - Consistent `ProblemDetail` error responses
-- Unit tests for the service and web-layer tests for the controller
+- Unit tests for services, worker, orchestrator, tasks, and the web layer
 
 ## Tech Stack
 
@@ -38,7 +40,7 @@ PENDING ──► RUNNING ──► COMPLETED
 - Only `PENDING` jobs can start.
 - Only `RUNNING` jobs can complete or fail.
 
-Transition helpers (`startJob`, `completeJob`, `failJob`) exist in the service layer; only creation, updates, listing, deletion, and cancellation are currently exposed over HTTP.
+Transition helpers (`startJob`, `completeJob`, `failJob`) live in the service layer. The `JobWorker` starts a pending job, resolves and runs its task, then completes or fails it.
 
 ## API
 
@@ -61,7 +63,9 @@ curl -X POST http://localhost:8080/jobs \
   -d '{
         "name": "send-invoices",
         "description": "Email monthly invoices",
-        "scheduledAt": "2026-11-01T09:30:00"
+        "scheduledAt": "2026-11-01T09:30:00",
+        "taskType": "GENERATE_REPORT",
+        "parameters": { "topic": "invoices" }
       }'
 ```
 
@@ -74,11 +78,14 @@ curl -X POST http://localhost:8080/jobs \
   "createdAt": "2026-10-22T17:12:03.551",
   "startedAt": null,
   "completedAt": null,
-  "status": "PENDING"
+  "status": "PENDING",
+  "taskType": "GENERATE_REPORT",
+  "parameters": { "topic": "invoices" },
+  "output": null
 }
 ```
 
-`name` must not be blank, and `scheduledAt` is required and must be in the future (ISO-8601 local date-time).
+`name` must not be blank, and `scheduledAt` is required and must be in the future (ISO-8601 local date-time). `taskType` and `parameters` are required.
 
 ### Errors
 
@@ -130,29 +137,27 @@ java -jar target/background-job-scheduler-0.0.1-SNAPSHOT.jar
 
 ```text
 src/main/java/com/projects/backgroundjobscheduler
+├── config/       Scheduler and JSON/JPA configuration
 ├── controller/   REST endpoints (JobController)
-├── dto/          Request payloads (CreateJobRequest, UpdateJobRequest)
+├── dto/          Request/response payloads
 ├── entity/       JPA entity (Job)
-├── enums/        JobStatus
+├── enums/        JobStatus and TaskType
 ├── exception/    Domain exceptions + global handler
 ├── repository/   Spring Data JPA repository
-└── service/      Business logic and state transitions
+├── service/      Job lifecycle, orchestration, scheduling and execution
+│   ├── JobService       CRUD + guarded state transitions
+│   ├── JobOrchestrator  Creates jobs and schedules them after commit
+│   ├── JobScheduler     Submits due jobs to the task scheduler
+│   └── JobWorker        Starts, executes, completes or fails a job
+└── task/         Task abstraction, resolver and implementations
 
 src/main/resources/application.yaml   App + datasource config
-src/test/java/...                      Service and controller tests
+src/test/java/...                      Matching tests for services, tasks and controller
 ```
 
 ## Continuous Integration
 
 GitHub Actions runs `./mvnw -B verify` on every push and pull request to `main`/`master`. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
-
-## Roadmap
-
-- HTTP endpoints for `start`, `complete`, and `fail`
-- A scheduler/worker that actually executes due jobs
-- Retries and failure backoff
-- Pagination and filtering by status
-- Authentication and multi-tenant support
 
 ## License
 

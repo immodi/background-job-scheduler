@@ -1,3 +1,4 @@
+
 package com.projects.backgroundjobscheduler.service;
 
 import com.projects.backgroundjobscheduler.dto.CreateJobRequest;
@@ -7,9 +8,9 @@ import com.projects.backgroundjobscheduler.enums.JobStatus;
 import com.projects.backgroundjobscheduler.exception.InvalidJobStateException;
 import com.projects.backgroundjobscheduler.exception.JobNotFoundException;
 import com.projects.backgroundjobscheduler.repository.JobRepository;
-import org.springframework.transaction.annotation.Transactional;
-
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
 
 import java.util.List;
 
@@ -28,16 +29,26 @@ public class JobService {
 
     @Transactional
     public Job createJob(CreateJobRequest request) {
-        return jobRepository.save(new Job(request.name(), request.description(), request.scheduledAt()));
+        Job job = new Job(
+                request.name(),
+                request.description(),
+                request.scheduledAt()
+        );
+
+        job.setTaskType(request.taskType());
+        job.setParameters(request.parameters());
+
+        return jobRepository.save(job);
     }
 
     @Transactional
-    // PUT style full update
     public Job updateJob(Long id, UpdateJobRequest request) {
         Job job = getJobOrThrow(id);
 
         if (job.getStatus() != JobStatus.PENDING) {
-            throw new InvalidJobStateException("Job is not in PENDING state");
+            throw new InvalidJobStateException(
+                    "Job is not in PENDING state"
+            );
         }
 
         job.setName(request.name());
@@ -62,7 +73,9 @@ public class JobService {
         Job job = getJobOrThrow(id);
 
         if (job.getStatus() != JobStatus.PENDING) {
-            throw new InvalidJobStateException("Only pending jobs can be cancelled");
+            throw new InvalidJobStateException(
+                    "Only pending jobs can be cancelled"
+            );
         }
 
         job.markAsCancelled();
@@ -73,20 +86,25 @@ public class JobService {
         Job job = getJobOrThrow(id);
 
         if (job.getStatus() != JobStatus.PENDING) {
-            throw new InvalidJobStateException("Only pending jobs can be started");
+            throw new InvalidJobStateException(
+                    "Only pending jobs can be started"
+            );
         }
 
         job.markAsRunning();
     }
 
     @Transactional
-    public void completeJob(Long id) {
+    public void completeJob(Long id, JsonNode output) {
         Job job = getJobOrThrow(id);
 
         if (job.getStatus() != JobStatus.RUNNING) {
-            throw new InvalidJobStateException("Only running jobs can be completed");
+            throw new InvalidJobStateException(
+                    "Only running jobs can be completed"
+            );
         }
 
+        job.setOutput(output);
         job.markAsCompleted();
     }
 
@@ -95,7 +113,9 @@ public class JobService {
         Job job = getJobOrThrow(id);
 
         if (job.getStatus() != JobStatus.RUNNING) {
-            throw new InvalidJobStateException("Only running jobs can fail");
+            throw new InvalidJobStateException(
+                    "Only running jobs can fail"
+            );
         }
 
         job.markAsFailed();

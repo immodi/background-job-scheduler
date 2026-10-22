@@ -1,8 +1,11 @@
 package com.projects.backgroundjobscheduler.entity;
 
 
+import com.projects.backgroundjobscheduler.config.JsonNodeConverter;
 import com.projects.backgroundjobscheduler.enums.JobStatus;
+import com.projects.backgroundjobscheduler.enums.TaskType;
 import jakarta.persistence.*;
+import tools.jackson.databind.JsonNode;
 
 import java.time.LocalDateTime;
 
@@ -17,6 +20,17 @@ public class Job {
     private LocalDateTime createdAt;
     private LocalDateTime startedAt;
     private LocalDateTime completedAt;
+
+    @Convert(converter = JsonNodeConverter.class)
+    @Column(columnDefinition = "TEXT")
+    private JsonNode parameters;
+
+    @Convert(converter = JsonNodeConverter.class)
+    @Column(columnDefinition = "TEXT")
+    private JsonNode output;
+
+    @Enumerated(EnumType.STRING)
+    private TaskType taskType;
 
     @Enumerated(EnumType.STRING)
     private JobStatus status;
@@ -75,6 +89,7 @@ public class Job {
     }
     public void markAsRunning() {
         this.status = JobStatus.RUNNING;
+        this.startedAt = LocalDateTime.now();
     }
 
     public void markAsCompleted() {
@@ -98,5 +113,33 @@ public class Job {
 
     public JobStatus getStatus() {
         return status;
+    }
+
+    public TaskType getTaskType() {
+        return taskType;
+    }
+
+    public void setTaskType(TaskType taskType) {
+        this.taskType = taskType;
+    }
+
+    public JsonNode getParameters() {
+        return parameters;
+    }
+
+    public void setParameters(JsonNode parameters) {
+        this.parameters = parameters;
+    }
+
+    public JsonNode getOutput() {
+        return output;
+    }
+
+    public void setOutput(JsonNode output) {
+        this.output = output;
+    }
+
+    public Long getId() {
+        return id;
     }
 }
